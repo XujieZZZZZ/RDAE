@@ -1,0 +1,72 @@
+data_dir: !!python/object/apply:pathlib.PosixPath
+- /
+- Users
+- dingch
+- Desktop
+- Projections
+- aideml-main-FIFO
+- aideml-main
+- carbon-aware_ev_fifo
+- simulator
+desc_file: !!python/object/apply:pathlib.PosixPath
+- /
+- Users
+- dingch
+- Desktop
+- Projections
+- aideml-main-FIFO
+- aideml-main
+- carbon-aware_ev_fifo
+- data_description.txt
+goal: Improve the pure FIFO scheduling baseline by adding carbon-awareness. The new
+  algorithm should reduce carbon usage while maintaining reasonable completion time.
+eval: Compare the candidate against the baseline using execution time, carbon usage,
+  and average job completion time. Lower is better for all three metrics.
+log_dir: !!python/object/apply:pathlib.PosixPath
+- /
+- Users
+- dingch
+- Desktop
+- Projections
+- aideml-main-FIFO
+- aideml-main
+- carbon-aware_ev_fifo
+- logs
+- 0-carbon_aware_optimization
+workspace_dir: !!python/object/apply:pathlib.PosixPath
+- /
+- Users
+- dingch
+- Desktop
+- Projections
+- aideml-main-FIFO
+- aideml-main
+- carbon-aware_ev_fifo
+- workspaces
+- 0-carbon_aware_optimization
+preprocess_data: false
+copy_data: true
+exp_name: 0-carbon_aware_optimization
+exec:
+  timeout: 3600
+  agent_file_name: carbon_aware_actor_agent.py
+  format_tb_ipython: false
+generate_report: true
+report:
+  model: deepseek-chat
+  temp: 1.0
+agent:
+  steps: 10
+  k_fold_validation: 1
+  expose_prediction: false
+  data_preview: false
+  code:
+    model: deepseek-chat
+    temp: 0.7
+  feedback:
+    model: deepseek-chat
+    temp: 0.5
+  search:
+    max_debug_depth: 3
+    debug_prob: 0.3
+    num_drafts: 5

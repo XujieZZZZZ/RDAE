@@ -1,0 +1,96 @@
+# AIDE configuration for Carbon-Aware Scheduling Optimization
+# This config adapts AIDE for carbon-aware algorithm improvement
+
+# Path to simulator directory (used as data_dir)
+data_dir: "./simulators/simulator"
+desc_file: "examples/carbon_aware_dag/task_description.txt"
+# Task description
+goal: "Optimize the carbon-aware scheduling algorithm to minimize total execution time, total carbon usage, and average job completion time."
+eval: "Evaluate using three metrics: total execution time (avg executors), total carbon usage, and average job completion time. Lower values are better for all metrics."
+
+log_dir: logs
+workspace_dir: workspaces
+
+# Data preprocessing (not applicable for carbon-aware, but required by AIDE)
+preprocess_data: False
+copy_data: True
+
+exp_name: carbon_aware_optimization
+
+# Settings for code execution
+exec:
+  timeout: 3600  # 1 hour timeout for test.py execution
+  agent_file_name: carbon_aware_actor_agent.py
+  format_tb_ipython: False
+
+generate_report: True
+# LLM settings for final report
+report:
+  model: deepseek-chat
+  temp: 1.0
+
+# Agent hyperparameters
+agent:
+  # Number of improvement iterations
+  steps: 10
+  # Cross-validation (not applicable, but required)
+  k_fold_validation: 1
+  # Whether to generate prediction function (not applicable)
+  expose_prediction: True
+  # Data preview (not applicable for code improvement)
+  data_preview: False
+
+  # LLM settings for coding
+  code:
+    model: deepseek-chat  # or gpt-4-turbo, claude-3-opus, etc.
+    temp: 0.7
+
+  # LLM settings for evaluating program output
+  feedback:
+    model: deepseek-chat  # or gpt-4-turbo, claude-3-opus, etc.
+    temp: 0.5
+
+  # Hyperparameters for tree search
+  search:
+    max_debug_depth: 3
+    debug_prob: 0.3  # Lower probability since we're improving code, not debugging ML models
+    num_drafts: 5  # At least 2 drafts per optimization path (3 paths * 2 = 6)
+
+metrics:
+  metric_keys: ["total_time", "total_carbon", "avg_job_completion"]
+  metric_weights: [0.3, 0.6, 0.1]  # Carbon is more important
+  baseline_name: fifo
+
+interpret:
+  simulator_dir: ./simulators/simulator
+  test_script_path: ./simulators/simulator/test.py
+  timeout: 3600
+  candidate_filename: fifo_agent.py
+  prepare_baseline_metric: False
+  target_agent_relpath: agents/new_agent.py
+  candidate_class_name: NewAgent
+  required_methods: 
+    - get_action
+  metrics_json_prefix: AIDE_METRICS_JSON=
+  algo_name: newalgo
+  baseline_algo_name: fifo
+  test_args: 
+    - "--num_exp"
+    - "1"
+    - "--exec_cap"
+    - "50"
+    - "--exec_cap"
+    - "100"
+    - "--num_init_dags"
+    - "1"
+    - "--num_stream_dags"
+    - "50"
+    - "--canvs_visualization"
+    - "0"
+    - "--test_schemes"
+    - "decima"
+    - "cap_decima"
+    - "pcaps"
+    - "fifo"
+    - "cap_fifo"
+    - "newalgo"

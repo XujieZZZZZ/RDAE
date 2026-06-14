@@ -1,0 +1,83 @@
+# AIDE configuration for Carbon-Aware Scheduling Optimization
+# This config adapts AIDE for carbon-aware algorithm improvement
+
+# Path to simulator directory (used as data_dir)
+data_dir: "./simulators/prism"
+desc_file: "examples/prism/task_description.txt"
+# Task description
+goal: "Your task is to evolve the existing compute_model_placement method to maximize max_kvpr ,success_rate and minimize execution_time."
+eval: "Evaluate using the metric: max_kvpr, execution_time and success_rate"
+
+log_dir: logs
+workspace_dir: workspaces
+
+# Data preprocessing (not applicable for carbon-aware, but required by AIDE)
+preprocess_data: False
+copy_data: True
+
+exp_name: prism
+
+# Settings for code execution
+exec:
+  timeout: 3600  # 1 hour timeout for test.py execution
+  # agent_file_name: carbon_aware_actor_agent.py
+  format_tb_ipython: False
+
+generate_report: True
+# LLM settings for final report
+report:
+  model: deepseek-chat
+  temp: 1.0
+
+# Agent hyperparameters
+agent:
+  # Number of improvement iterations
+  steps: 10
+  # Cross-validation (not applicable, but required)
+  k_fold_validation: 1
+  # Whether to generate prediction function (not applicable)
+  expose_prediction: True
+  # Data preview (not applicable for code improvement)
+  data_preview: False
+
+#  # Bug tracking configuration
+#  enable_bug_tracking: true
+#  use_llm_for_bug_extraction: true  # 使用LLM提取bug信息（推荐）
+#  max_bugs_in_prompt: 10
+#  bug_similarity_threshold: 0.7
+
+  # LLM settings for coding
+  code:
+    model: deepseek-chat  # or gpt-4-turbo, claude-3-opus, etc.
+    temp: 0.7
+
+  # LLM settings for evaluating program output
+  feedback:
+    model: deepseek-chat  # or gpt-4-turbo, claude-3-opus, etc.
+    temp: 0.5
+
+  # Hyperparameters for tree search
+  search:
+    max_debug_depth: 3
+    debug_prob: 0.3  # Lower probability since we're improving code, not debugging ML models
+    num_drafts: 5  # At least 2 drafts per optimization path (3 paths * 2 = 6)
+
+metrics:
+  metric_keys: ["combined_score"]
+  metric_weights: [-1]
+  baseline_name: baseline
+
+interpret:
+  simulator_dir: ./simulators/prism
+  test_script_path: ./simulators/prism/test.py
+  timeout: 3600
+  candidate_filename: new_program.py
+  prepare_baseline_metric: False
+  target_agent_relpath: new_program.py
+  candidate_class_name: null
+  required_methods: 
+    - compute_model_placement
+  metrics_json_prefix: AIDE_METRICS_JSON=
+  algo_name: newalgo
+  baseline_algo_name: baseline
+  test_args: null

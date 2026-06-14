@@ -1,0 +1,81 @@
+# DataFrame Column Reordering for LLM Prompt Caching Optimization Task
+
+## Task Goal
+
+Improve the baseline Evolved algorithm (initial_program.py) by developing a more sophisticated column reordering strategy. The new algorithm (to be implemented in new_program.py) must maximize prefix hit count (PHC) for efficient LLM prompt caching while maintaining reasonable runtime, outperforming the baseline Evolved algorithm.
+
+## Problem Context
+
+Large language models (LLMs) process sequential data with prompt caching mechanisms that can significantly reduce computation costs. When processing tabular data row-by-row, LLMs can reuse cached prefixes from previous rows if consecutive rows share matching values in the same column positions. 
+
+Each DataFrame is represented as a table with rows and columns, where each cell contains text, numeric, or boolean data. The challenge is to determine the optimal column ordering for each row such that when rows are processed sequentially, the prefix overlap between consecutive rows is maximized.
+
+The key insight is that different rows may benefit from different column orderings. For example, if two consecutive rows share the same value in column "category", placing "category" first maximizes prefix reuse. However, the next row pair might share values in different columns, requiring a different ordering strategy.
+
+## Baseline Algorithm
+
+The baseline is the **initial Evolved algorithm** (initial_program.py) that uses a recursive greedy strategy.
+It identifies the most frequent value across all cells, groups rows containing that value, reorders columns to place the value first, and recursively applies this strategy to remaining rows and columns.
+
+Key characteristics of the baseline:
+- Class: `Evolved(Algorithm)` in initial_program.py
+- Constructor: `__init__(self, df=None)`
+  - `df`: optional pandas DataFrame for initialization
+- Method: `reorder(self, df, early_stop=0, row_stop=None, col_stop=None, col_merge=[], one_way_dep=[], distinct_value_threshold=0.8, parallel=True)`
+  - Returns a 2-tuple: (reordered_dataframe, column_orderings)
+  - Uses recursive row and column grouping based on most frequent values
+  - Implements parallel processing for large DataFrames
+  - Has configurable recursion depth limits (row_stop, col_stop)
+
+## New Algorithm
+
+You MUST implement the following method inside the `NewEvolved` class:
+
+### Method: `reorder(self, df, early_stop=0, row_stop=None, col_stop=None, col_merge=[], one_way_dep=[], distinct_value_threshold=0.8, parallel=True)`
+
+```python
+def reorder(
+    self,
+    df: pd.DataFrame,
+    early_stop: int = 0,
+    row_stop: int = None,
+    col_stop: int = None,
+    col_merge: List[List[str]] = [],
+    one_way_dep: List[Tuple[str, str]] = [],
+    distinct_value_threshold: float = 0.8,
+    parallel: bool = True,
+) -> Tuple[pd.DataFrame, List[List[str]]]:
+    """
+    Reorder DataFrame columns to maximize prefix hit count.
+
+    Args:
+        df: Input pandas DataFrame with text/numeric data
+        early_stop: Early stopping threshold for recursion (default: 0)
+        row_stop: Maximum row recursion depth (default: None)
+        col_stop: Maximum column recursion depth (default: None)
+        col_merge: List of column groups to merge before reordering
+        one_way_dep: List of (col1, col2) tuples indicating dependencies
+        distinct_value_threshold: Threshold for discarding high-cardinality columns (default: 0.8)
+        parallel: Whether to use parallel processing (default: True)
+
+    Returns:
+        (reordered_df, column_orderings)
+        - reordered_df: DataFrame with optimized column ordering per row
+        - column_orderings: List of column orderings used (can be empty)
+    """
+```
+
+## Evaluation Metrics
+
+The algorithm is evaluated by comparing **new_program.py vs initial_program.py (baseline)**:
+
+1. **average_hit_rate**: percentage of characters that match prefixes from previous rows. Higher is better.
+2. **average_runtime**: average wall-clock time to compute the reordering. Lower is better.
+
+where:
+- `average_hit_rate = mean(hit_rates across all test datasets)`
+
+Alternative scoring used in evaluator:
+```
+score = 0.95 * average_hit_rate + 0.05 * (12 - min(12, average_runtime)) / 12
+```

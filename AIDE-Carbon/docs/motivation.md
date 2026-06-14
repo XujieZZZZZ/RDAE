@@ -1,0 +1,7 @@
+Recent advances in Large Language Models (LLMs) have sparked growing interest in autonomous code optimization, where models iteratively improve existing implementations with minimal human intervention. Despite promising progress, current approaches still exhibit important limitations. Most existing methods either achieve only incremental improvements to the original codebase, such as minor engineering refinements or parameter-level tuning, or suffer from low success rates when attempting substantial algorithmic modifications. In practice, LLMs often struggle to reliably generate fundamentally improved solutions that require deeper reasoning, cross-domain knowledge integration, or non-trivial redesign of the underlying algorithm.
+
+We observe that this limitation largely stems from the restricted knowledge boundary of the model itself, as well as its inability to effectively retrieve, organize, and synthesize external knowledge relevant to the target problem. Even when retrieval mechanisms are introduced, the collected information is frequently sparse, noisy, or poorly aligned with the optimization objective, leading the model toward shallow modifications rather than meaningful innovation.
+
+These observations motivate a fundamental research question: **How can we enable Large Language Models to perform substantial and reliable algorithmic optimization?**
+
+To address these challenges, we propose a framework grounded in **structured knowledge representations and historical optimization experience**.

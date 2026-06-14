@@ -1,0 +1,115 @@
+# Carbon-Aware Scheduling Algorithm Optimization Task
+
+## Task Goal
+
+Improve the pure FIFO scheduling baseline (fifo_agent.py) by adding carbon-awareness. The new algorithm must reduce total carbon usage while keeping job completion time reasonable, outperforming the pure FIFO baseline.
+
+## Problem Context
+
+Large-scale data processing workloads continue to grow, and their carbon footprint raises concerns. Prior research shows that carbon-aware schedulers can reduce carbon emissions by 25-40% with minimal impact on job completion time, by shifting computation to low-carbon periods and throttling resources during high-carbon periods.
+
+Data processing jobs have precedence constraints (DAG structure): outputs of one task are inputs for another. Delaying an upstream "bottleneck" task to a low-carbon period will also block downstream tasks, impacting the entire job's completion time.
+
+## Baseline Algorithm
+
+The baseline is a **pure FIFO scheduler**.
+It has NO carbon awareness — it simply schedules tasks in order using all available executors, ignoring carbon intensity signals entirely.
+
+Key characteristics of the baseline:
+- Class: `FifoAgent(Agent)`
+- Constructor: `__init__(self, exec_cap, carbon_schedule, exec_lower_bound=20)`
+  - `exec_cap`: maximum number of executors
+  - `carbon_schedule`: dict mapping timestamps to carbon intensity (available but unused in baseline)
+  - `exec_lower_bound`: minimum executor lower bound (self.B)
+- Method: `get_action(self, obs) -> (node, use_exec, carbon_aware_flag)`
+  - Returns a 3-tuple: selected node, number of executors, carbon_aware boolean
+  - The baseline always returns `carbon_aware_flag = False` (or `True` only when pausing)
+
+## New Algorithm
+
+You MUST implement the following two methods inside the `NewAgent` class:
+
+### Method 1: `get_action(self, obs)`
+
+```
+def get_action(self, obs):
+    """
+    Make scheduling decisions.
+
+    Args:
+        obs: tuple of:
+            (job_dags, source_job, num_source_exec,
+             frontier_nodes, executor_limits,
+             exec_commit, moving_executors, action_map, current_time)
+
+    Returns:
+        (node, use_exec, carbon_aware_flag)
+        - node: selected task node to run (or None to defer/pause)
+        - use_exec: number of executors to allocate (int)
+        - carbon_aware_flag: bool, True if deferring due to high carbon
+    """
+```
+
+### Method 2 (optional but recommended): `get_carbon_intensity(self, current_time)`
+
+```
+def get_carbon_intensity(self, current_time):
+    """
+    Look up current carbon intensity and compute bounds.
+
+    Args:
+        current_time: current simulation timestamp (ms)
+
+    Returns:
+        (current_carbon, L, U)
+        - current_carbon: carbon intensity at current_time
+        - L: lower bound (minimum over forecast window)
+        - U: upper bound (maximum over forecast window)
+        Constraint: L < U must always hold.
+    """
+```
+
+## Evaluation Metrics
+
+The algorithm is evaluated by comparing **newalgo vs fifo**:
+
+1. **Total Carbon Usage**: cumulative carbon footprint. Lower is better.
+2. **Total Execution Time**: total wall-clock time. Lower is better.
+3. **Average Job Completion Time**: mean JCT across all jobs. Lower is better.
+
+Composite score (higher = better):
+```
+quant_score = 0.3 * pct_improve(time) + 0.6 * pct_improve(carbon)++ 0.1 * pct_improve(jct)
+```
+where `pct_improve(x) = (fifo_x - newalgo_x) / fifo_x * 100` (positive = improvement).
+
+## Key Invariants (MUST NOT Violate)
+
+1. `self.B <= self.exec_cap <= self.exec_cap_MAX` at all times
+2. `L < U` when using carbon intensity bounds
+3. `get_action` MUST return a 3-tuple `(node, use_exec, carbon_aware_flag)`
+4. Task precedence constraints (DAG dependencies) must be respected
+5. Do NOT modify imports, class name (`NewAgent`), constructor signature, or `self.exec_map`
+
+## Available State
+
+- `self.carbon_schedule`: dict `{timestamp_ms: carbon_intensity}` — use this!
+- `self.exec_cap_MAX`: maximum executor capacity
+- `self.exec_cap`: current executor cap (you can dynamically adjust this)
+- `self.B`: lower bound for executor cap (`exec_lower_bound`)
+- `self.exec_map`: dict mapping job_dag -> allocated executor count
+- In `get_action`, the `obs` tuple contains:
+  - `job_dags`: all active job DAGs
+  - `source_job`: job that just freed executors (may be None)
+  - `num_source_exec`: number of freed executors
+  - `frontier_nodes`: immediately schedulable nodes
+  - `exec_commit`: committed executor assignments
+  - `moving_executors`: executors in transition
+  - `current_time`: current timestamp (ms)
+
+## Notes
+
+- The algorithm operates in a simulated Spark-like environment
+- Carbon intensity data is provided as a time-series (60-second buckets)
+- Jobs arrive as DAGs with precedence constraints
+- The scheduler is called at each decision point (executor becomes free)

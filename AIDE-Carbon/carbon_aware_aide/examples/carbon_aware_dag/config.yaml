@@ -1,0 +1,50 @@
+# AIDE configuration for Carbon-Aware Scheduling Optimization
+# This config adapts AIDE for carbon-aware algorithm improvement
+
+llm:
+  primary_model: "deepseek-chat"
+  primary_model_weight: 1.0
+#  secondary_model: "deepseek-reasoner"
+#  secondary_model_weight: 0.0
+  api_base: "https://api.deepseek.com"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 8192
+  timeout: 1200
+
+paths:
+  baseline_code: ./fifo_agent.py
+  papers_jsonl: ./analysis_results.jsonl
+  simulator_dir: ./simulators/simulator
+  aide_config: ./config_aide.yaml
+  simulator_info_file: ./simulator_info.md
+  user_requirement_file: ./user_requirement.md
+  # summary_md: ./Summary.md
+  # prompt_dir: ./prompts
+  # domain_prompt_md: ./prompts/domain_context.md
+
+task:
+  goal: >-
+    Improve the pure FIFO scheduling baseline by adding carbon-awareness.
+    The new algorithm should reduce carbon usage while maintaining reasonable completion time.
+  eval: >-
+    Compare the candidate against the baseline using execution time, carbon usage,
+    and average job completion time. Lower is better for all three metrics.
+  # optimization_paths:
+  #   - carbon_threshold_scheduling
+  #   - valley_forecasting
+  #   - dag_aware_carbon_scheduling
+  steps: 30
+
+# runtime:
+#   test_script_path: simulator/test.py
+#   candidate_filename: fifo_agent.py
+#   target_agent_relpath: agents/new_agent.py
+#   candidate_class_name: NewAgent
+#   required_methods:
+#     - get_action
+#   metrics_json_prefix: AIDE_METRICS_JSON=
+#   scheme_name: newalgo
+#   baseline_scheme_name: fifo
+
+# resume_path: /Users/dingch/Desktop/Projections/AI4Research/aideml-main-FIFO/aideml-main/carbon_aware_decompose/logs/15-carbon_aware_optimization

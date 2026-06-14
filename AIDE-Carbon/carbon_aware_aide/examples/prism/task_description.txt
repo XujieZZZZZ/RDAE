@@ -1,0 +1,96 @@
+# DataFrame Column Reordering for LLM Prompt Caching Optimization Task
+
+## Task Goal
+
+Improve the baseline compute_model_placement algorithm (initial_program.py) by developing a more sophisticated GPU placement strategy. The new algorithm (to be implemented in new_program.py) must minimize KVCache Pressure (KVPR) across GPUs while maintaining high feasibility and robustness, outperforming the baseline placement algorithm.
+
+## Problem Context
+
+Large-scale LLM serving platforms typically host multiple models on shared GPU infrastructure. Each model occupies a portion of GPU memory and continuously receives inference requests from users. Besides storing model weights, GPUs must also reserve memory for KVCache, which is critical for efficient autoregressive generation.
+
+When multiple models are colocated on the same GPU, they compete for the remaining memory available for KVCache. If a GPU hosts too many large or heavily accessed models, KVCache pressure increases, potentially degrading throughput and increasing latency. Therefore, model placement has a significant impact on overall serving performance.
+
+Each deployment scenario consists of several GPUs and a collection of models with different memory requirements, request rates, and latency constraints. The challenge is to determine how models should be assigned to GPUs such that KVCache resources remain balanced while respecting GPU memory limits.
+
+The key insight is that a good placement must jointly consider model size and workload intensity. For example, assigning multiple high-request-rate models to the same GPU may create severe KVCache contention even when memory capacity is not fully utilized. On the other hand, spreading workload too aggressively may waste available memory resources. As a result, effective placement requires balancing memory utilization and request pressure across the entire cluster.
+
+Different workloads may favor different placement strategies. A deployment dominated by large models may require memory-aware decisions, whereas workloads containing many high-traffic models may benefit more from load balancing. Therefore, the objective is to design a robust placement algorithm that adapts to diverse deployment scenarios and minimizes the maximum KVCache pressure across GPUs.
+
+## Baseline Algorithm
+
+The baseline is the **initial compute_model_placement algorithm** (initial_program.py) that uses a greedy KVPR-aware placement strategy.
+It sorts models according to their weighted request pressure (`req_rate / slo`) and iteratively assigns each model to the GPU with the currently lowest KVCache pressure while satisfying memory constraints.
+
+Key characteristics of the baseline:
+- Function: `compute_model_placement(gpu_num, models)` in initial_program.py
+- Inputs:
+  - `gpu_num`: number of available GPUs
+  - `models`: list of model objects to be placed
+- Returns:
+  - A placement dictionary mapping GPU IDs to lists of assigned models
+- Uses a greedy scheduling strategy based on descending `req_rate / slo`
+- Tracks remaining GPU memory and accumulated request pressure
+- Places each model onto the GPU with the minimum current KVPR
+- Strictly enforces GPU memory capacity constraints
+- Raises an exception if no feasible placement exists
+
+## New Algorithm
+
+You MUST implement the following function inside `new_program.py`:
+
+### Method: `compute_model_placement(gpu_num, models)`
+
+```python
+def compute_model_placement(
+    gpu_num,
+    models,
+):
+    """
+    Compute a model placement that minimizes KVCache pressure.
+
+    Args:
+        gpu_num: Number of available GPUs
+        models: List of model objects
+
+    Returns:
+        placement
+        - placement: Dictionary mapping GPU IDs to assigned models
+    """
+```
+The returned placement must satisfy all GPU memory constraints and should minimize the maximum KVCache pressure across GPUs.
+
+Each model provides the following attributes:
+
+model.model_name   # model identifier
+model.model_size   # model size in GB
+model.req_rate     # request arrival rate
+model.slo          # service-level objective
+model.cur_gpu_id   # original GPU location
+
+The placement output must follow the format:
+
+{
+    gpu_id_0: [model_a, model_b, ...],
+    gpu_id_1: [model_c, model_d, ...],
+    ...
+}
+
+where every model is assigned exactly once and no GPU exceeds its memory capacity.
+
+## Evaluation Metrics
+
+The algorithm is evaluated by comparing **new_program.py vs initial_program.py (baseline)**:
+
+1. **max_kvpr**: inverse of the average maximum KVCache Pressure Ratio across test cases. Higher is better.
+2. **success_rate**: fraction of test cases that produce valid placements without errors or timeouts. Higher is better.
+3. **execution_time**: average runtime required to generate placements. Lower is better.
+
+where:
+
+- `max_kvpr = 1 / mean(max_kvpr_across_test_cases)`
+- `success_rate = successful_runs / total_test_cases`
+
+Alternative scoring used in evaluator:
+```
+combined_score = max_kvpr + success_rate
+```
